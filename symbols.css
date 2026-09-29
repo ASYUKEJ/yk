@@ -1,0 +1,1084 @@
+/* ============================================
+   Yumika Karimey — Чёрный Янтарь + Морозное Небо
+   ============================================ */
+
+:root {
+    /* Основные цвета */
+    --black-amber: #0a0a0a;
+    --frost-sky: #00d2ff;        /* ЕДИНЫЙ голубой всего сайта */
+    --sky-rgb: 0, 210, 255;      /* та же точка в rgba() */
+
+    /* Производные от чёрного янтаря */
+    --dark-1: #0a0a0a;
+    --dark-2: #111111;
+    --dark-3: #1a1a1a;
+    --dark-4: #222222;
+
+    /* Производные от морозного неба */
+    --frost-1: #00d2ff;
+    --frost-2: #29ddff;
+    --frost-3: #66e7ff;
+    --frost-4: #99efff;
+
+    /* Фоны */
+    --bg-primary: var(--black-amber);
+    --bg-secondary: var(--dark-2);
+    --bg-card: var(--dark-3);
+    --bg-card-hover: var(--dark-4);
+
+    /* Текст */
+    --text-primary: var(--frost-3);
+    --text-secondary: var(--frost-2);
+    --text-muted: var(--frost-1);
+
+    /* Границы и свечение */
+    --border-color: var(--frost-sky);
+    --glow: rgba(var(--sky-rgb), 0.25);
+    --glow-strong: rgba(var(--sky-rgb), 0.5);
+
+    /* Акцент — один на весь сайт, без вариантов по группам */
+    --accent: var(--frost-sky);
+    --accent-rgb: var(--sky-rgb);
+
+    /* Градиент «чёрный → голубой» (сверху вниз) */
+    --bg-stop-1: #0a0a0a;   /* чёрный */
+    --bg-stop-2: #05101a;
+    --bg-stop-3: #072435;
+    --bg-stop-4: #0a3a5c;   /* голубой */
+    --bg-stop-5: #0d5588;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Подложка на html — чтобы при скролле не вылезало белое */
+html {
+    background: var(--bg-stop-1);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    /* Градиент от чёрного (сверху) к голубому (снизу) */
+    background:
+        radial-gradient(ellipse 100% 55% at 50% 110%,
+            rgba(var(--sky-rgb), 0.30) 0%,
+            rgba(var(--sky-rgb), 0.10) 35%,
+            transparent 62%),
+        radial-gradient(ellipse 80% 45% at 12% 0%,
+            rgba(var(--sky-rgb), 0.14) 0%,
+            transparent 60%),
+        linear-gradient(180deg,
+            var(--bg-stop-1) 0%,
+            var(--bg-stop-2) 30%,
+            var(--bg-stop-3) 60%,
+            var(--bg-stop-4) 85%,
+            var(--bg-stop-5) 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* === Анимация молний на фоне (loop) === */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 50% 0%, rgba(var(--sky-rgb), 0.2) 0%, transparent 60%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    animation: lightning 4s infinite;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(var(--sky-rgb), 0.15) 0%, transparent 50%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    animation: lightning 6s infinite 2s;
+}
+
+@keyframes lightning {
+    0%, 100% { opacity: 0; }
+    2% { opacity: 1; }
+    4% { opacity: 0; }
+    6% { opacity: 0.9; }
+    8% { opacity: 0; }
+    10% { opacity: 0.7; }
+    12% { opacity: 0; }
+    14% { opacity: 0.5; }
+    16%, 98% { opacity: 0; }
+}
+
+/* === Анимация вспышки при обновлении === */
+@keyframes flash {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* === Анимация при обновлении данных === */
+.anim-update .card {
+    animation: pulse-update 1s ease-out;
+}
+
+.anim-interval .card {
+    animation: pulse-interval 2s ease-out;
+}
+
+@keyframes pulse-update {
+    0% { box-shadow: 0 0 0 rgba(var(--sky-rgb), 0); }
+    50% { box-shadow: 0 0 30px rgba(var(--sky-rgb), 0.5); }
+    100% { box-shadow: 0 0 0 rgba(var(--sky-rgb), 0); }
+}
+
+@keyframes pulse-interval {
+    0% { box-shadow: 0 0 0 rgba(var(--sky-rgb), 0); }
+    25% { box-shadow: 0 0 20px rgba(var(--sky-rgb), 0.3); }
+    50% { box-shadow: 0 0 40px rgba(var(--sky-rgb), 0.6); }
+    75% { box-shadow: 0 0 20px rgba(var(--sky-rgb), 0.3); }
+    100% { box-shadow: 0 0 0 rgba(var(--sky-rgb), 0); }
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px;
+}
+
+/* === Шапка с профилем === */
+.header {
+    padding: 20px 18px;
+    margin-bottom: 20px;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(var(--sky-rgb), 0.18), transparent 55%),
+        linear-gradient(135deg,
+            rgba(10, 10, 10, 0.92) 0%,
+            rgba(10, 58, 92, 0.75) 100%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border-radius: 12px;
+    border: 1px solid var(--frost-sky);
+    box-shadow: 0 0 40px var(--glow);
+}
+
+.header-profile {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.header-avatar-link {
+    position: relative;
+    flex: 0 0 auto;      /* аватар не сжимается никогда */
+    display: block;
+    border-radius: 50%;
+}
+
+.header-avatar {
+    display: block;
+    width: clamp(70px, 13vw, 96px);
+    height: clamp(70px, 13vw, 96px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--frost-sky);
+    box-shadow: 0 0 20px var(--glow);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+/* Вращающееся кольцо-молния */
+.header-avatar-ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    padding: 2px;
+    background: conic-gradient(from 0deg,
+        transparent 0deg,
+        var(--frost-sky) 40deg,
+        #ffffff 70deg,
+        transparent 120deg,
+        transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: header-ring-spin 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes header-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+.header-avatar-link:hover .header-avatar {
+    transform: scale(1.06);
+    box-shadow: 0 0 30px var(--glow-strong);
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;       /* позволяет тексту сжиматься, но не ломать флекс */
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    color: var(--frost-sky);
+    text-shadow: 0 0 30px var(--glow-strong);
+    margin: 0;
+    line-height: 1.15;
+}
+
+.subtitle {
+    color: var(--frost-2);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.header-btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 4px;
+    padding: 7px 16px;
+    font-size: 0.8rem;
+    color: var(--frost-sky);
+    background: var(--dark-4);
+    border: 1px solid var(--frost-sky);
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+/* Тот же приём, что и на кнопке-молнии: на голубой заливке
+   чёрная иконка Twitch пропадала бы — оставляем фон тёмным */
+.header-btn:hover {
+    background: rgba(var(--sky-rgb), 0.18);
+    color: var(--frost-sky);
+    box-shadow: 0 0 18px var(--glow-strong);
+    transform: translateY(-2px);
+}
+
+/* === Сетка карточек === */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+/* === Карточки === */
+.card {
+    /* Полупрозрачные — сквозь них видно градиент фона */
+    background:
+        linear-gradient(180deg,
+            rgba(16, 16, 16, 0.88) 0%,
+            rgba(6, 22, 34, 0.82) 100%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--frost-sky);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px var(--glow);
+}
+
+.card h2 {
+    color: var(--frost-sky);
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--frost-sky);
+}
+
+.card h2:not(:first-child) {
+    margin-top: 18px;
+}
+
+/* === Сворачиваемые секции (аккордеон) === */
+.collapse-group {
+    position: relative;
+    margin: 0 -6px 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    transition: background 0.9s ease, box-shadow 0.9s ease;
+}
+
+.collapse-group + .collapse-group {
+    margin-top: 18px;
+}
+
+/* Мягкая подсветка группы при наведении/открытии */
+.collapse-group.is-open {
+    background: rgba(var(--sky-rgb), 0.05);
+    box-shadow: inset 0 0 22px rgba(var(--sky-rgb), 0.08);
+}
+
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    margin-bottom: 14px;
+    transition: text-shadow 0.8s ease, letter-spacing 0.8s ease, margin-bottom 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    border-bottom: 2px solid transparent;
+}
+
+.collapse-group:not(.is-open) .collapsible-header {
+    margin-bottom: 0;
+}
+
+.collapsible-header > i {
+    flex-shrink: 0;
+    transition: transform 0.4s ease, filter 0.4s ease;
+}
+
+.collapsible-header:hover {
+    text-shadow: 0 0 14px var(--glow-strong);
+}
+
+/* Иконка слегка поворачивается и подсвечивается */
+.collapse-group:hover .collapsible-header > i {
+    transform: scale(1.12) rotate(-6deg);
+    filter: drop-shadow(0 0 6px var(--glow-strong));
+}
+
+/* Кнопка-молния: мягкое «дыхание» свечения */
+.collapse-btn {
+    position: relative;       /* якорь для кольца-энергии */
+    margin-left: auto;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+
+    /* Точное центрирование:
+       line-height: 0 убирает лишний бокс строки под глифом,
+       padding: 0 сбивает браузерный дефолт button (1px 6px),
+       который сдвигал молнию вбок. */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 0;
+    padding: 0;
+
+    background: var(--dark-4);
+    color: var(--frost-sky);
+    border: 1px solid rgba(var(--sky-rgb), 0.6);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background 0.35s ease, color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+    animation: btn-bolt-glow 3s ease-in-out infinite;
+}
+
+/* Глиф молнии: без своей строки, иначе снова сместится */
+.collapse-btn > i {
+    display: block;
+    line-height: 0;
+}
+
+/* Кольцо-энергия: круг вокруг молнии «дышит» — расходится и сходит.
+   Вынесено на ::after, чтобы не отбирать transform у hover/active. */
+.collapse-btn::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--sky-rgb), 0.6);
+    pointer-events: none;
+    animation: energy-pulse 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+@keyframes energy-pulse {
+    0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.35;
+        box-shadow: 0 0 6px rgba(var(--sky-rgb), 0.35);
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.9;
+        box-shadow: 0 0 20px rgba(var(--sky-rgb), 0.75);
+    }
+}
+
+/* Наведение: фон остаётся тёмным, молния — голубая.
+   Сплошная заливка --frost-sky перекрашивала глиф в чёрный,
+   потому что на равном по тону фоне иначе не прочитать. */
+.collapse-btn:hover {
+    background: rgba(var(--sky-rgb), 0.18);
+    color: var(--frost-sky);
+    border-color: var(--frost-sky);
+    box-shadow: 0 0 20px var(--glow-strong);
+    transform: scale(1.08);
+}
+
+.collapse-btn:hover::after {
+    border-color: var(--frost-sky);
+}
+
+.collapse-btn:active {
+    transform: scale(0.92);
+}
+
+@keyframes btn-bolt-glow {
+    0%, 100% {
+        box-shadow: 0 0 4px rgba(var(--sky-rgb), 0.3);
+        text-shadow: 0 0 5px var(--glow-strong);
+    }
+    50% {
+        box-shadow: 0 0 13px rgba(var(--sky-rgb), 0.65);
+        text-shadow: 0 0 11px var(--glow-strong);
+    }
+}
+
+/* Содержимое секции — медленное плавное раскрытие */
+.collapsible-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-14px) scale(0.985);
+    transition: max-height 1.15s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.8s ease 0.1s,
+                transform 0.95s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Открытое состояние задаётся последним — перебивает .info-block */
+.collapse-group.is-open .collapsible-content {
+    max-height: 2400px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Нежное «проявление» строк — медленное, волной сверху вниз */
+.collapse-group.is-open .info-block p {
+    animation: row-fade-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.collapse-group.is-open .info-block p:nth-child(1) { animation-delay: 0.10s; }
+.collapse-group.is-open .info-block p:nth-child(2) { animation-delay: 0.16s; }
+.collapse-group.is-open .info-block p:nth-child(3) { animation-delay: 0.22s; }
+.collapse-group.is-open .info-block p:nth-child(4) { animation-delay: 0.28s; }
+.collapse-group.is-open .info-block p:nth-child(5) { animation-delay: 0.34s; }
+.collapse-group.is-open .info-block p:nth-child(6) { animation-delay: 0.40s; }
+.collapse-group.is-open .info-block p:nth-child(7) { animation-delay: 0.46s; }
+.collapse-group.is-open .info-block p:nth-child(8) { animation-delay: 0.52s; }
+.collapse-group.is-open .info-block p:nth-child(9) { animation-delay: 0.58s; }
+.collapse-group.is-open .info-block p:nth-child(10) { animation-delay: 0.64s; }
+.collapse-group.is-open .info-block p:nth-child(11) { animation-delay: 0.70s; }
+.collapse-group.is-open .info-block p:nth-child(12) { animation-delay: 0.76s; }
+.collapse-group.is-open .info-block p:nth-child(13) { animation-delay: 0.82s; }
+.collapse-group.is-open .info-block p:nth-child(14) { animation-delay: 0.88s; }
+.collapse-group.is-open .info-block p:nth-child(15) { animation-delay: 0.94s; }
+.collapse-group.is-open .info-block p:nth-child(16) { animation-delay: 1.00s; }
+.collapse-group.is-open .info-block p:nth-child(17) { animation-delay: 1.06s; }
+.collapse-group.is-open .info-block p:nth-child(n+18) { animation-delay: 1.12s; }
+
+@keyframes row-fade-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-14px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+/* Открытая секция: кнопка светится мягче и без резких скачков */
+.collapsible-header.open .collapse-btn {
+    animation: btn-bolt-glow 1.8s ease-in-out infinite;
+}
+
+/* ...и волна энергии идёт чаще — круг заметно «дышит» активнее */
+.collapsible-header.open .collapse-btn::after {
+    animation-duration: 1.9s;
+}
+
+.collapsible-header.open {
+    border-bottom-color: rgba(var(--sky-rgb), 0.55);
+    text-shadow: 0 0 12px var(--glow-strong);
+}
+
+/* Плавное «дыхание» подсветки заголовка при открытой секции */
+.collapsible-header.open::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, var(--frost-sky), transparent);
+    background-size: 200% 100%;
+    animation: line-sheen 3.5s linear infinite;
+    pointer-events: none;
+    border-radius: 2px;
+}
+
+@keyframes line-sheen {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+
+
+/* === Информационные блоки === */
+.info-block p {
+    padding: 5px 0;
+    color: var(--frost-2);
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(var(--sky-rgb), 0.15);
+}
+
+.info-block p:last-child {
+    border-bottom: none;
+}
+
+.info-block strong {
+    color: var(--frost-3);
+}
+
+/* === Кнопки ссылок === */
+.links-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ---- Группа ссылок ----
+   --accent / --accent-rgb НЕ переопределяются: единый голубой
+   наследуется из :root. Вариантов по группам больше нет. */
+.link-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 10px 12px;
+    margin: 0 -10px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-rgb), 0.015));
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    transition: border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
+}
+
+.link-group:hover {
+    border-color: rgba(var(--accent-rgb), 0.45);
+    box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.18);
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.11), rgba(var(--accent-rgb), 0.03));
+}
+
+/* ---- Подзаголовок группы ---- */
+.links-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 2px;
+    padding-bottom: 7px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.25);
+    transition: color 0.4s ease, letter-spacing 0.4s ease;
+}
+
+.link-group:hover .links-group {
+    letter-spacing: 1.1px;
+}
+
+/* Иконка заголовка группы: «дыхание» + перетекание градиента.
+   display / filter / transition заданы ниже, в блоке ГРАДИЕНТ ИКОНОК. */
+.links-group > i {
+    font-size: 0.68rem;
+    animation:
+        grp-icon-breathe 2.8s ease-in-out infinite,
+        grp-grad-drift 8s ease-in-out infinite alternate;
+}
+
+.link-group:hover .links-group > i {
+    transform: scale(1.25) rotate(-10deg);
+    animation: grp-grad-drift 1.4s ease-in-out infinite alternate;
+}
+
+/* text-shadow нельзя — с background-clip: text он просвечивает сквозь глифы.
+   Свечение делаем через filter: drop-shadow, он повторяет форму глифа. */
+@keyframes grp-icon-breathe {
+    0%, 100% { opacity: 0.75; filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.45)); }
+    50%      { opacity: 1;    filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.9)); }
+}
+
+/* ============================================================
+   ГРАДИЕНТ ИКОНОК
+   Слева-сверху — морозное небо #00d2ff
+   Снизу-справа — чёрный янтарь #0a0a0a
+   Плавный переход через промежуточные тона.
+   ============================================================ */
+.links-group > i,
+.link-group .link-btn > i {
+    display: inline-block;
+
+    /* line-height: 1 — иначе бокс иконки выше глифа (наследуется 1.6 от body)
+       и градиент растягивается по лишней высоте, а не по форме знака */
+    line-height: 1;
+    vertical-align: -0.125em;
+
+    background-image: linear-gradient(135deg,
+        #00d2ff 0%,        /* морозное небо — слева сверху */
+        #2b8fae 30%,
+        #0d4a63 58%,
+        #0a1a22 80%,
+        #0a0a0a 100%      /* чёрный янтарь — снизу справа */
+    );
+    background-size: 200% 200%;
+    background-position: 0% 0%;
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+
+    filter: drop-shadow(0 0 5px rgba(var(--sky-rgb), 0.4));
+    transition:
+        background-position 0.6s ease,
+        -webkit-text-fill-color 0.3s ease,
+        filter 0.35s ease,
+        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Градиент медленно перетекает по глифу */
+@keyframes grp-grad-drift {
+    from { background-position: 0% 100%; }
+    to   { background-position: 100% 0%; }
+}
+
+/* На кнопке при наведении фон становится сплошным акцентом —
+   градиент там не читается, поэтому иконка уходит в чёрный */
+.link-group .link-btn:hover > i {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    color: #0a0a0a;
+    filter: none;
+}
+
+/* Заблокированная кнопка при наведении остаётся тёмной —
+   чёрная иконка на ней пропала бы, возвращаем градиент */
+.link-group--soon .link-btn.locked:hover > i {
+    background-image: linear-gradient(135deg,
+        #00d2ff 0%,
+        #2b8fae 30%,
+        #0d4a63 58%,
+        #0a1a22 80%,
+        #0a0a0a 100%);
+    background-size: 200% 200%;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter: drop-shadow(0 0 6px rgba(var(--sky-rgb), 0.55));
+}
+
+/* ---- Кнопки внутри группы ---- */
+.link-group .link-btn {
+    position: relative;
+    overflow: hidden;
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    font-weight: 600;
+}
+
+.link-group .link-btn:hover {
+    background: var(--accent);
+    color: #0a0a0a;
+    border-color: var(--accent);
+    box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.65);
+    transform: translateY(-2px);
+}
+
+/* Блик, пробегающий по кнопке при наведении */
+.link-group .link-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-20deg);
+    opacity: 0;
+}
+
+.link-group .link-btn:hover::after {
+    animation: btn-sheen 0.75s ease forwards;
+    opacity: 1;
+}
+
+@keyframes btn-sheen {
+    to { left: 130%; }
+}
+
+/* ---- Заблокированная ссылка «Скоро» ---- */
+.link-group--soon .link-btn.locked {
+    background: rgba(var(--accent-rgb), 0.07);
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    opacity: 0.75;
+    animation: soon-breathe 3.4s ease-in-out infinite;
+}
+
+.link-group--soon .link-btn.locked:hover {
+    background: rgba(var(--accent-rgb), 0.14);
+    color: var(--accent);
+    box-shadow: none;
+    transform: none;
+}
+
+@keyframes soon-breathe {
+    0%, 100% { border-color: rgba(var(--sky-rgb), 0.22); }
+    50%      { border-color: rgba(var(--sky-rgb), 0.6); }
+}
+
+/* ---- Появление групп при загрузке (каскад снизу вверх) ---- */
+.link-group {
+    animation: grp-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.link-group:nth-child(1) { animation-delay: 0.05s; }
+.link-group:nth-child(2) { animation-delay: 0.14s; }
+.link-group:nth-child(3) { animation-delay: 0.23s; }
+.link-group:nth-child(4) { animation-delay: 0.32s; }
+
+@keyframes grp-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Уважаем системную настройку «меньше движения» */
+@media (prefers-reduced-motion: reduce) {
+    .link-group,
+    .links-group > i,
+    .link-group--soon .link-btn.locked,
+    .collapse-btn,
+    .collapse-btn::after,
+    .channel-avatar,
+    .header-avatar-ring {
+        animation: none !important;
+    }
+    * {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.link-btn {
+    display: block;
+    padding: 8px 12px;
+    background: var(--frost-sky);
+    color: var(--black-amber);
+    text-decoration: none;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    border: 1px solid var(--frost-sky);
+}
+
+.link-btn:hover {
+    background: var(--frost-2);
+    box-shadow: 0 0 20px var(--glow-strong);
+    transform: scale(1.02);
+}
+
+.link-btn.locked {
+    background: var(--dark-4);
+    color: var(--frost-1);
+    border-color: var(--dark-4);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.link-btn.locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* === Рекомендуемые каналы ===
+   Сетка вместо flex: ник и статус на разных строках.
+   В одну строку места физически не хватает (колонка ~260px,
+   контенту нужно ~320px), поэтому flex со сжатием превращался
+   в борьбу за пиксели. Ник — идентификатор, резать его нельзя. */
+.channel-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "avatar name"
+        "avatar status";
+    gap: 3px 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(var(--sky-rgb), 0.15);
+}
+
+.channel-item:last-child {
+    border-bottom: none;
+}
+
+.channel-avatar {
+    grid-area: avatar;
+    width: clamp(28px, 4vw, 40px);
+    height: clamp(28px, 4vw, 40px);
+    border-radius: 50%;
+    border: 2px solid var(--frost-sky);
+    object-fit: cover;
+    transition: all 0.3s ease;
+}
+
+/* Ник — идентификатор. flex-shrink: 0 = не сжимается НИКОГДА */
+.channel-link {
+    grid-area: name;
+    align-self: end;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--frost-sky);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.channel-link:hover {
+    color: var(--frost-3);
+    text-shadow: 0 0 15px var(--glow-strong);
+}
+
+/* =======================================================
+   УМНАЯ БЕГУЩАЯ СТРОКА
+   1. .status-viewport  — «шторка», обрезает текст
+   2. .status-text      — сам текст, он двигается
+   3. --scroll-dist     — реальная ширина переполнения (считает JS)
+   Если текст влезает — класс .scroll-anim не ставится, текст стоит.
+   Если не влезает — текст едет влево до конца и возвращается.
+   ======================================================= */
+
+.channel-status {
+    grid-area: status;
+    align-self: start;
+    justify-self: start;
+    max-width: 100%;
+    font-size: 0.75rem;
+    padding: 3px 9px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    position: relative;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.channel-status.offline {
+    color: #888;
+    background: rgba(136, 136, 136, 0.1);
+    border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.channel-status.live {
+    color: var(--frost-sky);
+    background: rgba(var(--sky-rgb), 0.15);
+    border: 1px solid var(--frost-sky);
+    animation: live-pulse 2s infinite;
+}
+
+/* Точка: не сжимается, всегда на своём месте */
+.channel-status > i {
+    font-size: 0.55rem;
+    flex: 0 0 auto;
+    line-height: 1;
+}
+
+/* Шторка — именно она обрезает текст, точка остаётся нетронутой */
+.status-viewport {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    height: 1.2em;
+}
+
+/* Мягкое затухание краёв — текст не режется «в ноль» */
+.channel-status.scroll-anim .status-viewport {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+
+/* Текст — не сжимается, ширина = своя естественная */
+.status-text {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    line-height: 1.2em;
+}
+
+/* ---- Состояние: текст влезает (по умолчанию) ---- */
+/* Ничего не анимируется, текст просто стоит */
+
+/* ---- Состояние: текст НЕ влезает ---- */
+.channel-status.scroll-anim .status-text {
+    animation: smart-scroll 10s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* LIVE-вариант: тот же скролл + бегущий блик по тексту */
+.channel-status.live.scroll-anim .status-text {
+    animation:
+        smart-scroll 10s cubic-bezier(0.45, 0, 0.55, 1) infinite,
+        text-sheen 3.2s linear infinite;
+    background-image: linear-gradient(
+        100deg,
+        var(--frost-sky) 0%,
+        #ffffff 20%,
+        var(--frost-sky) 40%,
+        #ffffff 60%,
+        var(--frost-sky) 80%,
+        #ffffff 100%
+    );
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Умный скролл: пауза → въезд влево до конца → пауза → возврат */
+@keyframes smart-scroll {
+    0%    { transform: translateX(0); }
+    10%   { transform: translateX(0); }                              /* стоим */
+    42%   { transform: translateX(var(--scroll-dist, 0px)); }       /* уехали влево */
+    62%   { transform: translateX(var(--scroll-dist, 0px)); }       /* держим, читаем */
+    94%   { transform: translateX(0); }                              /* вернулись */
+    100%  { transform: translateX(0); }                              /* пауза */
+}
+
+/* Блик по тексту */
+@keyframes text-sheen {
+    0%   { background-position: 300% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* Анимация LIVE */
+@keyframes live-pulse {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(var(--sky-rgb), 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(var(--sky-rgb), 0.6);
+    }
+}
+
+.channel-item:has(.channel-status.live) .channel-avatar {
+    border-color: var(--frost-sky);
+    box-shadow: 0 0 15px var(--glow-strong);
+    animation: avatar-pulse 2s infinite;
+}
+
+@keyframes avatar-pulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(var(--sky-rgb), 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(var(--sky-rgb), 0.6);
+    }
+}
+
+/* === Подвал === */
+.footer {
+    text-align: center;
+    padding: 14px;
+    margin-top: 20px;
+    color: var(--frost-1);
+    font-size: 0.8rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(var(--sky-rgb), 0.10) 100%);
+    border-top: 1px solid var(--frost-sky);
+    border-radius: 0 0 10px 10px;
+}
+
+.footer a {
+    color: var(--frost-sky);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--frost-3);
+    text-shadow: 0 0 15px var(--glow-strong);
+}
+
+/* === Адаптивность === */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.8rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 10px;
+    }
+}
+
+/* === Font Awesome иконки === */
+.fa-solid,
+.fa-brands {
+    color: var(--frost-sky);
+    margin-right: 8px;
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Brands', sans-serif;
+}
+
+.link-btn .fa-solid,
+.link-btn .fa-brands {
+    color: var(--black-amber);
+    margin-right: 6px;
+}
+
+.link-btn.locked .fa-solid {
+    color: var(--frost-1);
+}
