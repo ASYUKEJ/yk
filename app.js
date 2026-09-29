@@ -520,27 +520,21 @@ const ChannelStatus = {
 const Collapsible = {
     groups: [],
     pinned: null,
-    defaultItem: null,
-    closeDelay: 250,
 
     init() {
         this.groups = Array.from(document.querySelectorAll('.collapse-group'))
             .map(group => {
                 const header = group.querySelector('.collapsible-header');
-                return header ? { group, header, open: false } : null;
+                return header ? { group, header } : null;
             })
             .filter(Boolean);
 
         const cards = new Set(this.groups.map(g => g.group.parentElement));
 
         this.groups.forEach(item => {
-            // Секция с .is-open в разметке открыта по умолчанию
-            if (this.isOpen(item)) {
-                this.defaultItem = item;
-                this.pinned = item;
-            } else {
-                this.collapse(item);
-            }
+            // На старте всё закрыто — «О себе» закрывается сама,
+            // а следующая секция раскрывается просто от наведения мыши
+            this.collapse(item);
 
             // Клик — открыть/закрыть и закрепить
             item.header.addEventListener('click', (e) => {
@@ -553,18 +547,14 @@ const Collapsible = {
             item.group.addEventListener('mouseenter', () => this.expand(item));
         });
 
-        // Уход курсора с карточки:
-        //   - если секция закреплена кликом — не трогаем
-        //   - иначе возвращаем дефолтную «О себе», чтобы колонка не пустовала
+        // Уход курсора с карточки — свернуть всё незакреплённое
         cards.forEach(card => {
             if (!card) return;
             card.addEventListener('mouseleave', () => {
-                if (this.pinned) return;
-                this.collapseAll();
-                if (this.defaultItem) {
-                    this.defaultItem.group.classList.add('is-open');
-                    this.defaultItem.header.classList.add('open');
-                }
+                this.groups.forEach(item => {
+                    if (this.pinned === item) return;
+                    this.collapse(item);
+                });
             });
         });
     },
@@ -588,10 +578,6 @@ const Collapsible = {
     collapse(item) {
         item.group.classList.remove('is-open');
         item.header.classList.remove('open');
-    },
-
-    collapseAll() {
-        this.groups.forEach(item => this.collapse(item));
     },
 
     // Клик: закрепляет секцию (не реагирует на уход курсора)
