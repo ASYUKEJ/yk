@@ -397,7 +397,7 @@ const UI = {
 
 // === Twitch Channel Status API ===
 const ChannelStatus = {
-    channels: ['foximyr', 'jomsvovy2', 'deafdenis2', 'lemi_q', 'poniixfnchk', 'm1sticfool', 'yastya_', 'lisichka_gamer', 'banzoinhakka'],
+    channels: ['foximyr', 'jomsvovy2', 'deafdenis2', 'lemi_q', 'poniixfnchk', 'm1sticfool', 'yastya_', 'lisichka_gamer'],
     statuses: {},
     avatars: {},
 
