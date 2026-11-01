@@ -13,14 +13,58 @@ const CONFIG = {
     TWITCH_GQL_URL: 'https://gql.twitch.tv/gql',
     CHANNEL_NAME: 'yumika_karimey',
 
-    // Токены (добавьте свои при необходимости)
-    TWITCH_OAUTH_TOKEN: '',      // OAuth токен для доступа к данным
-    STREAMELEMENTS_TOKEN: '',    // StreamElements API токен
-    STREAMLABS_TOKEN: '',        // StreamLabs API токен
+    // === Источники донатов ===
+    // 'auto'  — реальные источники, если настроены; иначе локальный JSON/демо
+    // true    — всегда тестовые данные
+    // false   — только реальные источники, без демо-заглушки
+    USE_MOCK_DATA: 'auto',
 
-    // Режим работы
-    USE_MOCK_DATA: true,         // true = тестовые данные, false = реальный API
+    // Порядок опроса источников. Источник без токена пропускается,
+    // локальный JSON пробуется всегда.
+    DONATION_PROVIDERS: ['donationalerts', 'streamelements', 'streamlabs', 'json'],
+
+    // Токены (можно вписать здесь или один раз выполнить в консоли браузера:
+    // YumikaSystem.setTokens({ donationalerts: '...' }))
+    TWITCH_OAUTH_TOKEN: '',      // OAuth токен Twitch (не обязателен для статусов каналов)
+    DONATIONALERTS_TOKEN: '',    // Bearer-токен DonationAlerts
+    STREAMELEMENTS_TOKEN: '',    // JWT из панели StreamElements (Account → API)
+    STREAMLABS_TOKEN: '',        // Access-токен StreamLabs API
+
+    // DonationAlerts берёт данные из той же истории, что и лента активности:
+    // https://www.donationalerts.com/dashboard/activity-feed/donations/
+    // Нужен только токен. Чем больше страниц — тем точнее топ, но больше запросов.
+    DONATIONALERTS_DASHBOARD_URL: 'https://www.donationalerts.com/dashboard/activity-feed/donations/',
+
+    // StreamElements нужен ID канала (24 символа), а не ник.
+    // Если пусто — подставляется CHANNEL_NAME (работает не для всех аккаунтов).
+    STREAMELEMENTS_CHANNEL_ID: '',
+
+    // Локальный файл с донатами — работает без токенов и без бэкенда
+    DONATIONS_JSON_URL: 'data/donations.json',
+
+    // Сколько последних донатов запрашивать у API и сколько показывать в топе
+    DONATIONS_FETCH_LIMIT: 100,
+    DONATION_LIMIT: 5,
+    DONATIONALERTS_PAGES: 2,
+
+    // Сколько живёт кэш, если API временно недоступен (24 часа)
+    DONATIONS_CACHE_TTL: 24 * 60 * 60 * 1000,
+    DONATIONS_CACHE_KEY: 'yumika_donations_cache',
+    TOKENS_STORAGE_KEY: 'yumika_tokens',
 };
+
+// Токены, сохранённые через YumikaSystem.setTokens(), имеют приоритет над CONFIG
+(function loadSavedTokens() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CONFIG.TOKENS_STORAGE_KEY) || '{}');
+        if (typeof saved.donationalerts === 'string') CONFIG.DONATIONALERTS_TOKEN = saved.donationalerts;
+        if (typeof saved.streamelements === 'string') CONFIG.STREAMELEMENTS_TOKEN = saved.streamelements;
+        if (typeof saved.streamlabs === 'string') CONFIG.STREAMLABS_TOKEN = saved.streamlabs;
+        if (typeof saved.streamelementsChannelId === 'string') CONFIG.STREAMELEMENTS_CHANNEL_ID = saved.streamelementsChannelId;
+    } catch (e) {
+        console.warn('[Config] Не удалось прочитать сохранённые токены:', e);
+    }
+})();
 
 // === Хранилище данных ===
 const DataStore = {
@@ -28,6 +72,7 @@ const DataStore = {
     memeAlerts: [],
     boosters: [],
     lastUpdate: null,
+    source: null,
     isUpdating: false,
 
     // Инициализация
@@ -46,6 +91,7 @@ const DataStore = {
                 this.memeAlerts = data.memeAlerts || [];
                 this.boosters = data.boosters || [];
                 this.lastUpdate = data.lastUpdate || null;
+                this.source = data.source || null;
             }
         } catch (e) {
             console.warn('[DataStore] Ошибка загрузки:', e);
@@ -59,7 +105,8 @@ const DataStore = {
                 donators: this.donators,
                 memeAlerts: this.memeAlerts,
                 boosters: this.boosters,
-                lastUpdate: this.lastUpdate
+                lastUpdate: this.lastUpdate,
+                source: this.source
             }));
         } catch (e) {
             console.warn('[DataStore] Ошибка сохранения:', e);
@@ -106,29 +153,12 @@ const TwitchAPI = {
         return this.graphql(query);
     },
 
-    // Получение донатеров (требует OAuth)
+    // Получение донатов вынесено в модуль Donations (ниже):
+    // Twitch не предоставляет публичный API для донатов, поэтому
+    // используются DonationAlerts / StreamElements / StreamLabs / локальный JSON.
     async getTopDonators() {
-        // Примечание: Twitch не предоставляет публичный API для донатов
-        // Используйте StreamElements, StreamLabs или собственный бэкенд
-        if (CONFIG.STREAMELEMENTS_TOKEN) {
-            return this.getStreamElementsDonators();
-        }
-        return [];
-    },
-
-    // StreamElements API
-    async getStreamElementsDonators() {
-        try {
-            const response = await fetch(`https://api.streamelements.com/kappa/v2/tips?channel=${CONFIG.CHANNEL_NAME}&limit=5`, {
-                headers: {
-                    'Authorization': `Bearer ${CONFIG.STREAMELEMENTS_TOKEN}`
-                }
-            });
-            return await response.json();
-        } catch (e) {
-            console.warn('[TwitchAPI] StreamElements ошибка:', e);
-            return [];
-        }
+        const result = await Donations.fetchTop();
+        return result.items || [];
     },
 
     // Получение бустеров Discord (требует Discord API)
@@ -142,15 +172,15 @@ const TwitchAPI = {
 // === Тестовые данные (Mock) ===
 const MockData = {
     donators: [
-        { name: 'Naokifuri', amount: '1770 RUB', rank: 1 },
-        { name: 'Леми', amount: '536,74 RUB', rank: 2 },
-        { name: 'Аноним', amount: '520 RUB', rank: 3 },
-        { name: 'Аteenss', amount: '400 RUB', rank: 4 },
-        { name: 'Yumika_Karimey (Michealufo1250)', amount: '80 RUB', rank: 5 }
+        { name: 'kakTY3', amount: '2090 ₽', rank: 1 },
+        { name: 'Naokifuri', amount: '1570 ₽', rank: 2 },
+        { name: 'Ateenss', amount: '920 ₽', rank: 3 },
+        { name: 'Lem_q', amount: '494,63 ₽', rank: 4 },
+        { name: 'Michaelufo1250', amount: '80 ₽', rank: 5 }
     ],
 
     memeAlerts: [
-        { name: 'Voidbasis', amount: '1785 RUB' }
+        { name: 'Voidnu11', amount: '2958 ₽' }
     ],
 
     boosters: [
@@ -167,14 +197,14 @@ const MockData = {
             const names = ['TestUser1', 'TestUser2', 'NewDonator'];
             const name = names.length > 0 ? names[Math.floor(Math.random() * names.length)] : null;
             if (!name) return;
-            const amount = `${Math.floor(Math.random() * 1000)} RUB`;
+            const amount = `${Math.floor(Math.random() * 1000)} ₽`;
             this.donators.push({ name, amount, rank: this.donators.length + 1 });
             this.donators = this.donators.slice(0, 5);
         } else if (type === 'memeAlert') {
             const names = [];
             const name = names.length > 0 ? names[Math.floor(Math.random() * names.length)] : null;
             if (!name) return;
-            const amount = `${Math.floor(Math.random() * 500)} RUB`;
+            const amount = `${Math.floor(Math.random() * 500)} ₽`;
             this.memeAlerts.push({ name, amount });
         } else {
             const names = [];
@@ -185,7 +215,263 @@ const MockData = {
     }
 };
 
-// === Система обновления ===
+// === Источники донатов ===
+// DonationAlerts / StreamElements / StreamLabs / локальный JSON.
+// Все адаптеры возвращают «сырые» записи, а Donations сам считает топ
+// и приводит суммы к единому виду.
+const Donations = {
+    errors: [],
+
+    // "1770", "536,74 RUB", "$5.00" → { amount: 536.74, currency: "RUB" }
+    parseAmount(value, fallbackCurrency = '') {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return { amount: value, currency: fallbackCurrency };
+        }
+
+        const text = String(value ?? '').trim();
+        const normalized = text.replace(/\s+/g, '').replace(',', '.');
+        const numberMatch = normalized.match(/-?\d+(?:\.\d+)?/);
+        const amount = numberMatch ? parseFloat(numberMatch[0]) : 0;
+        const currencyMatch = text.match(/RUB|USD|EUR|UAH|BYN|KZT|GBP|JPY|руб\.?|грн\.?|[₽$€£₴]/i);
+
+        let currency = fallbackCurrency || '';
+        if (currencyMatch) {
+            const raw = currencyMatch[0].replace(/\./g, '').toUpperCase();
+            const map = {
+                '₽': 'RUB', 'РУБ': 'RUB',
+                '$': 'USD', '€': 'EUR', '£': 'GBP',
+                '₴': 'UAH', 'ГРН': 'UAH'
+            };
+            currency = map[raw] || raw;
+        }
+
+        return { amount: Number.isFinite(amount) ? amount : 0, currency };
+    },
+
+    // Приводит запись любого источника к { name, amount, currency }
+    normalizeEntry(entry) {
+        if (!entry || typeof entry !== 'object') return null;
+
+        const name = entry.name || entry.username || entry.donor || entry.user || entry.sender || 'Аноним';
+        const parsed = this.parseAmount(entry.amount, (entry.currency || '').toUpperCase());
+        if (!(parsed.amount > 0)) return null;
+
+        return {
+            name: String(name).trim() || 'Аноним',
+            amount: parsed.amount,
+            currency: (entry.currency || parsed.currency || 'RUB').toString().toUpperCase()
+        };
+    },
+
+    // Достаёт массив записей из ответа API (форматы у сервисов разные)
+    extractArray(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (!payload || typeof payload !== 'object') return [];
+
+        for (const key of ['data', 'docs', 'donations', 'donators', 'items']) {
+            if (Array.isArray(payload[key])) return payload[key];
+            if (payload[key] && Array.isArray(payload[key].data)) return payload[key].data;
+        }
+        return [];
+    },
+
+    formatAmount(amount, currency) {
+        const formatted = new Intl.NumberFormat('ru-RU', {
+            maximumFractionDigits: 2
+        }).format(amount);
+
+        // Рубли показываем символом ₽, как в оформлении страницы
+        if (currency === 'RUB' || currency === 'РУБ') return `${formatted} ₽`;
+
+        return currency ? `${formatted} ${currency}` : formatted;
+    },
+
+    // Суммирует донаты одного человека и строит топ
+    aggregate(entries) {
+        const totals = new Map();
+        const seenIds = new Set();
+
+        (entries || []).forEach(entry => {
+            if (!entry || typeof entry !== 'object') return;
+
+            // Одна и та же запись может прийти с разных страниц API
+            const id = entry.id ?? entry._id ?? entry.donationId;
+            if (id !== undefined && id !== null) {
+                const key = String(id);
+                if (seenIds.has(key)) return;
+                seenIds.add(key);
+            }
+
+            const item = this.normalizeEntry(entry);
+            if (!item) return;
+
+            const key = item.name.toLowerCase();
+            const current = totals.get(key);
+            if (!current) {
+                totals.set(key, { ...item });
+                return;
+            }
+
+            // Разные валюты не складываем — оставляем больший номинал
+            if (!current.currency || current.currency === item.currency) {
+                current.amount += item.amount;
+                current.currency = current.currency || item.currency;
+            } else if (item.amount > current.amount) {
+                current.amount = item.amount;
+                current.currency = item.currency;
+            }
+        });
+
+        return Array.from(totals.values())
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, CONFIG.DONATION_LIMIT)
+            .map((item, index) => ({
+                name: item.name,
+                amount: this.formatAmount(item.amount, item.currency),
+                rank: index + 1
+            }));
+    },
+
+    async request(url, headers = {}) {
+        const response = await fetch(url, {
+            headers: { Accept: 'application/json', ...headers },
+            cache: 'no-store'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+    },
+
+    // DonationAlerts: последние донаты по страницам
+    async fetchDonationAlerts() {
+        const pages = Math.max(1, Math.min(5, Number(CONFIG.DONATIONALERTS_PAGES) || 1));
+        const requests = [];
+
+        for (let page = 1; page <= pages; page++) {
+            requests.push(this.request(
+                `https://www.donationalerts.com/api/v1/alerts/donations?page=${page}`,
+                { Authorization: `Bearer ${CONFIG.DONATIONALERTS_TOKEN}` }
+            ));
+        }
+
+        const payloads = await Promise.all(requests);
+        return payloads.flatMap(payload => this.extractArray(payload));
+    },
+
+    // StreamElements: JWT + ID канала
+    async fetchStreamElements() {
+        const channel = CONFIG.STREAMELEMENTS_CHANNEL_ID || CONFIG.CHANNEL_NAME;
+        const payload = await this.request(
+            `https://api.streamelements.com/kappa/v2/tips/${encodeURIComponent(channel)}?limit=${CONFIG.DONATIONS_FETCH_LIMIT}`,
+            { Authorization: `Bearer ${CONFIG.STREAMELEMENTS_TOKEN}` }
+        );
+        return this.extractArray(payload);
+    },
+
+    // StreamLabs: access-токен
+    async fetchStreamLabs() {
+        const payload = await this.request(
+            `https://streamlabs.com/api/v2.0/donations?limit=${CONFIG.DONATIONS_FETCH_LIMIT}&sort_by=created_at&order=desc`,
+            { Authorization: `Bearer ${CONFIG.STREAMLABS_TOKEN}` }
+        );
+        return this.extractArray(payload);
+    },
+
+    // Локальный JSON — работает без токенов
+    async fetchJson() {
+        const payload = await this.request(CONFIG.DONATIONS_JSON_URL);
+        return this.extractArray(payload);
+    },
+
+    getProviders() {
+        return {
+            donationalerts: {
+                label: 'DonationAlerts',
+                enabled: Boolean(CONFIG.DONATIONALERTS_TOKEN),
+                load: () => this.fetchDonationAlerts()
+            },
+            streamelements: {
+                label: 'StreamElements',
+                enabled: Boolean(CONFIG.STREAMELEMENTS_TOKEN),
+                load: () => this.fetchStreamElements()
+            },
+            streamlabs: {
+                label: 'StreamLabs',
+                enabled: Boolean(CONFIG.STREAMLABS_TOKEN),
+                load: () => this.fetchStreamLabs()
+            },
+            json: {
+                label: 'локальный JSON',
+                enabled: Boolean(CONFIG.DONATIONS_JSON_URL),
+                load: () => this.fetchJson()
+            }
+        };
+    },
+
+    // Пробует источники по порядку и возвращает первый непустой результат
+    async fetchTop() {
+        this.errors = [];
+
+        // Принудительно демо-режим
+        if (CONFIG.USE_MOCK_DATA === true) {
+            return { items: null, source: 'демо' };
+        }
+
+        const providers = this.getProviders();
+        const order = Array.isArray(CONFIG.DONATION_PROVIDERS) && CONFIG.DONATION_PROVIDERS.length
+            ? CONFIG.DONATION_PROVIDERS
+            : ['json'];
+
+        for (const key of order) {
+            const provider = providers[key];
+            if (!provider || !provider.enabled) continue;
+
+            try {
+                const entries = await provider.load();
+                const items = this.aggregate(entries);
+
+                if (items.length) {
+                    console.log(`[Donations] ${provider.label}: ${items.length} записей`);
+                    return { items, source: provider.label };
+                }
+                this.errors.push(`${provider.label}: нет донатов`);
+            } catch (error) {
+                this.errors.push(`${provider.label}: ${error.message}`);
+                console.warn(`[Donations] ${provider.label} недоступен:`, error.message);
+            }
+        }
+
+        return { items: null, source: null };
+    },
+
+    saveCache(items, source) {
+        try {
+            localStorage.setItem(CONFIG.DONATIONS_CACHE_KEY, JSON.stringify({
+                items,
+                source,
+                cachedAt: Date.now()
+            }));
+        } catch (e) {
+            console.warn('[Donations] Не удалось сохранить кэш:', e);
+        }
+    },
+
+    loadCache() {
+        try {
+            const raw = localStorage.getItem(CONFIG.DONATIONS_CACHE_KEY);
+            if (!raw) return null;
+
+            const data = JSON.parse(raw);
+            if (!data || !Array.isArray(data.items) || !data.items.length) return null;
+            if (Date.now() - (data.cachedAt || 0) > CONFIG.DONATIONS_CACHE_TTL) return null;
+
+            return data;
+        } catch (e) {
+            return null;
+        }
+    }
+};
+
+
 const UpdateSystem = {
     refreshTimer: null,
     testTimer: null,
@@ -223,25 +509,52 @@ const UpdateSystem = {
     },
 
     // Обновление данных
-    async refreshData() {
+    async refreshData({ manual = false } = {}) {
         if (DataStore.isUpdating) return;
         DataStore.isUpdating = true;
+
+        // Индикатор загрузки показываем только при ручном обновлении,
+        // чтобы автообновление каждые 30 секунд не мигало в шапке.
+        if (manual) {
+            UI.setRefreshing(true);
+            UI.renderSyncStatus('loading');
+        }
 
         console.log(`[${new Date().toLocaleTimeString()}] Обновление данных...`);
 
         try {
-            if (CONFIG.USE_MOCK_DATA) {
+            if (CONFIG.USE_MOCK_DATA === true) {
                 // Тестовый режим
                 MockData.getRandomUpdate();
                 DataStore.donators = [...MockData.donators];
                 DataStore.memeAlerts = [...MockData.memeAlerts];
                 DataStore.boosters = [...MockData.boosters];
+                DataStore.source = 'демо';
             } else {
-                // Реальный API
-                const donators = await TwitchAPI.getTopDonators();
-                const boosters = await TwitchAPI.getDiscordBoosters();
-                DataStore.donators = donators;
-                DataStore.boosters = boosters;
+                // Реальные источники: DonationAlerts / StreamElements / StreamLabs / JSON
+                const result = await Donations.fetchTop();
+
+                if (result.items) {
+                    DataStore.donators = result.items;
+                    DataStore.source = result.source;
+                    Donations.saveCache(result.items, result.source);
+                } else {
+                    const cached = Donations.loadCache();
+
+                    if (cached) {
+                        DataStore.donators = cached.items;
+                        DataStore.source = `кэш · ${cached.source}`;
+                    } else if (CONFIG.USE_MOCK_DATA !== false) {
+                        DataStore.donators = [...MockData.donators];
+                        DataStore.source = 'демо';
+                    } else {
+                        DataStore.donators = [];
+                        DataStore.source = null;
+                    }
+                }
+
+                // Meme Alerts и бустеры Discord приходят не из донат-API,
+                // поэтому не затираем статичные данные пустыми массивами.
             }
 
             DataStore.lastUpdate = new Date().toISOString();
@@ -249,14 +562,23 @@ const UpdateSystem = {
 
             // Обновление UI
             UI.updateDonators(DataStore.donators);
-            UI.updateMemeAlerts(DataStore.memeAlerts);
-            UI.updateBoosters(DataStore.boosters);
+            if (CONFIG.USE_MOCK_DATA === true) {
+                UI.updateMemeAlerts(DataStore.memeAlerts);
+                UI.updateBoosters(DataStore.boosters);
+            }
 
-            console.log(`[${new Date().toLocaleTimeString()}] Данные обновлены`);
+            UI.renderSyncStatus();
+            console.log(`[${new Date().toLocaleTimeString()}] Данные обновлены (${DataStore.source || 'нет источника'})`);
         } catch (e) {
             console.error('[UpdateSystem] Ошибка обновления:', e);
+            UI.renderSyncStatus('error');
         } finally {
             DataStore.isUpdating = false;
+            UI.setRefreshing(false);
+        }
+
+        if (manual) {
+            AnimationSystem.play('update');
         }
     },
 
@@ -349,25 +671,62 @@ const AnimationSystem = {
 
 // === UI обновления ===
 const UI = {
+    // Создаёт строку списка без innerHTML — имена пользователей не могут
+    // внедрить разметку/скрипт (защита от XSS).
+    createRow(iconClass, color, text) {
+        const row = document.createElement('p');
+        const icon = document.createElement('i');
+
+        icon.className = `fa-solid ${iconClass}`;
+        if (color) icon.style.color = color;
+
+        row.appendChild(icon);
+        row.appendChild(document.createTextNode(` ${text}`));
+        return row;
+    },
+
+    createEmptyRow(text) {
+        const row = document.createElement('p');
+        row.className = 'empty-state';
+        row.textContent = text;
+        return row;
+    },
+
+    // Приводит старые сохранённые суммы вида "1770 RUB" к "1770 ₽"
+    formatStoredAmount(value) {
+        if (value === undefined || value === null) return '';
+        return String(value)
+            .replace(/\bRUB\b/gi, '₽')
+            .replace(/\bРУБ\b/gi, '₽');
+    },
+
     // Обновление донатеров
     updateDonators(donators) {
         const container = document.getElementById('donators-list');
         if (!container) return;
 
+        container.textContent = '';
+
+        if (!Array.isArray(donators) || !donators.length) {
+            container.appendChild(this.createEmptyRow('Пока нет данных о донатах'));
+            return;
+        }
+
         const medals = [
-            'fa-trophy" style="color: #ffd700;',
-            'fa-trophy" style="color: #c0c0c0;',
-            'fa-trophy" style="color: #cd7f32;',
-            'fa-medal',
-            'fa-medal'
+            { icon: 'fa-trophy', color: '#ffd700' },
+            { icon: 'fa-trophy', color: '#c0c0c0' },
+            { icon: 'fa-trophy', color: '#cd7f32' },
+            { icon: 'fa-medal', color: null },
+            { icon: 'fa-medal', color: null }
         ];
 
-        let html = '';
         donators.forEach((d, i) => {
-            const medal = medals[i] || 'fa-medal';
-            html += `<p><i class="fa-solid ${medal}"></i> ${d.name} — ${d.amount}</p>`;
+            const medal = medals[i] || { icon: 'fa-medal', color: null };
+            const amount = d.amount === undefined || d.amount === null
+                ? ''
+                : ` — ${this.formatStoredAmount(d.amount)}`;
+            container.appendChild(this.createRow(medal.icon, medal.color, `${d.name}${amount}`));
         });
-        container.innerHTML = html;
     },
 
     // Обновление Meme Alerts
@@ -375,11 +734,19 @@ const UI = {
         const container = document.getElementById('memealerts-list');
         if (!container) return;
 
-        let html = '';
+        container.textContent = '';
+
+        if (!Array.isArray(alerts) || !alerts.length) {
+            container.appendChild(this.createEmptyRow('Пока нет данных'));
+            return;
+        }
+
         alerts.forEach(a => {
-            html += `<p><i class="fa-solid fa-bolt"></i> ${a.name} — ${a.amount}</p>`;
+            const amount = a.amount === undefined || a.amount === null
+                ? ''
+                : ` — ${this.formatStoredAmount(a.amount)}`;
+            container.appendChild(this.createRow('fa-bolt', null, `${a.name}${amount}`));
         });
-        container.innerHTML = html;
     },
 
     // Обновление бустеров
@@ -387,11 +754,83 @@ const UI = {
         const container = document.getElementById('boosters-list');
         if (!container) return;
 
-        let html = '';
+        container.textContent = '';
+
+        if (!Array.isArray(boosters) || !boosters.length) {
+            container.appendChild(this.createEmptyRow('Пока нет бустеров'));
+            return;
+        }
+
         boosters.forEach(b => {
-            html += `<p><i class="fa-solid fa-star"></i> ${b.name}</p>`;
+            container.appendChild(this.createRow('fa-star', null, b.name));
         });
-        container.innerHTML = html;
+    },
+
+    // Состояние кнопки «Обновить»
+    setRefreshing(isRefreshing) {
+        const button = document.getElementById('refresh-btn');
+        if (!button) return;
+
+        button.classList.toggle('is-loading', isRefreshing);
+        button.disabled = isRefreshing;
+
+        const label = button.querySelector('span');
+        if (label) label.textContent = isRefreshing ? 'Обновление…' : 'Обновить';
+    },
+
+    formatUpdatedAt(isoString) {
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return '—';
+
+        const now = new Date();
+        const time = date.toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const sameDay = date.getFullYear() === now.getFullYear()
+            && date.getMonth() === now.getMonth()
+            && date.getDate() === now.getDate();
+
+        return sameDay ? time : `${date.toLocaleDateString('ru-RU')} ${time}`;
+    },
+
+    // «Обновлено: 12:34:56 · Источник: StreamElements»
+    renderSyncStatus(state) {
+        const status = document.getElementById('sync-status');
+        const text = document.getElementById('sync-status-text');
+        const source = document.getElementById('sync-source');
+        if (!status || !text || !source) return;
+
+        status.classList.remove('is-live', 'is-error', 'is-loading');
+
+        if (state === 'loading') {
+            status.classList.add('is-loading');
+            text.textContent = 'Обновление данных…';
+            source.textContent = '';
+            return;
+        }
+
+        if (DataStore.lastUpdate) {
+            text.textContent = `Обновлено: ${this.formatUpdatedAt(DataStore.lastUpdate)}`;
+        } else {
+            text.textContent = 'Обновлено: —';
+        }
+
+        if (DataStore.source) {
+            source.textContent = `Источник: ${DataStore.source}`;
+        } else {
+            source.textContent = 'Источник не подключён';
+        }
+
+        if (state === 'error' || !DataStore.source) {
+            status.classList.add('is-error');
+        } else {
+            status.classList.add('is-live');
+        }
+
+        status.title = (Donations.errors || []).join('\n');
     }
 };
 
@@ -604,6 +1043,20 @@ const Collapsible = {
 // === Инициализация при загрузке страницы ===
 document.addEventListener('DOMContentLoaded', () => {
     DataStore.init();
+
+    // Показываем сохранённые данные, не дожидаясь ответа API
+    if (DataStore.donators.length) UI.updateDonators(DataStore.donators);
+
+    UI.renderSyncStatus();
+
+    // Ручное обновление
+    const refreshButton = document.getElementById('refresh-btn');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', () => {
+            UpdateSystem.refreshData({ manual: true });
+        });
+    }
+
     UpdateSystem.start();
     Collapsible.init();
 
@@ -628,25 +1081,54 @@ window.YumikaSystem = {
     config: CONFIG,
     data: DataStore,
     api: TwitchAPI,
+    donations: Donations,
     update: UpdateSystem,
     animation: AnimationSystem,
     ui: UI,
     collapsible: Collapsible,
 
     // Ручное обновление
-    refresh: () => UpdateSystem.refreshData(),
+    refresh: () => UpdateSystem.refreshData({ manual: true }),
 
-    // Переключение режима
+    // Переключение режима: true — демо, false — только реальные источники,
+    // 'auto' — реальные источники с откатом на JSON/демо
     setMockMode: (enabled) => {
         CONFIG.USE_MOCK_DATA = enabled;
         console.log(`[YumikaSystem] Mock режим: ${enabled}`);
+        return UpdateSystem.refreshData({ manual: true });
     },
 
-    // Установка токенов
-    setTokens: (tokens) => {
-        if (tokens.twitch) CONFIG.TWITCH_OAUTH_TOKEN = tokens.twitch;
-        if (tokens.streamelements) CONFIG.STREAMELEMENTS_TOKEN = tokens.streamelements;
-        if (tokens.streamlabs) CONFIG.STREAMLABS_TOKEN = tokens.streamlabs;
+    // Установка и запоминание токенов
+    // Пример: YumikaSystem.setTokens({ donationalerts: '...' })
+    // Пустая строка очищает сохранённый токен.
+    setTokens: (tokens = {}) => {
+        const has = (key) => Object.prototype.hasOwnProperty.call(tokens, key);
+
+        if (has('twitch')) CONFIG.TWITCH_OAUTH_TOKEN = tokens.twitch || '';
+        if (has('donationalerts')) CONFIG.DONATIONALERTS_TOKEN = tokens.donationalerts || '';
+        if (has('streamelements')) CONFIG.STREAMELEMENTS_TOKEN = tokens.streamelements || '';
+        if (has('streamlabs')) CONFIG.STREAMLABS_TOKEN = tokens.streamlabs || '';
+        if (has('streamelementsChannelId')) CONFIG.STREAMELEMENTS_CHANNEL_ID = tokens.streamelementsChannelId || '';
+
+        try {
+            localStorage.setItem(CONFIG.TOKENS_STORAGE_KEY, JSON.stringify({
+                donationalerts: CONFIG.DONATIONALERTS_TOKEN,
+                streamelements: CONFIG.STREAMELEMENTS_TOKEN,
+                streamlabs: CONFIG.STREAMLABS_TOKEN,
+                streamelementsChannelId: CONFIG.STREAMELEMENTS_CHANNEL_ID
+            }));
+        } catch (e) {
+            console.warn('[YumikaSystem] Не удалось сохранить токены:', e);
+        }
+
         console.log('[YumikaSystem] Токены обновлены');
+        return UpdateSystem.refreshData({ manual: true });
+    },
+
+    // Порядок источников, например ['streamelements', 'json']
+    setProviderOrder: (providers) => {
+        CONFIG.DONATION_PROVIDERS = Array.isArray(providers) ? providers : [];
+        console.log('[YumikaSystem] Порядок источников:', CONFIG.DONATION_PROVIDERS);
+        return UpdateSystem.refreshData({ manual: true });
     }
 };

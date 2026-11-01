@@ -26,9 +26,22 @@
                 <div class="header-info">
                     <h1><i class="fa-solid fa-bolt"></i> Yumika Karimey <i class="fa-solid fa-bolt"></i></h1>
                     <p class="subtitle">Официальная страница стримера</p>
-                    <a href="https://www.twitch.tv/yumika_karimey" target="_blank" rel="noopener" class="header-btn">
-                        <i class="fa-brands fa-twitch"></i> Twitch
-                    </a>
+
+                    <div class="header-actions">
+                        <a href="https://www.twitch.tv/yumika_karimey" target="_blank" rel="noopener" class="header-btn">
+                            <i class="fa-brands fa-twitch"></i> Twitch
+                        </a>
+                        <button type="button" class="header-btn refresh-btn" id="refresh-btn" title="Обновить данные донатов">
+                            <i class="fa-solid fa-rotate-right"></i> <span>Обновить</span>
+                        </button>
+                    </div>
+
+                    <!-- Техническая информация скрыта от посетителей -->
+                    <p class="sync-status" id="sync-status" hidden aria-hidden="true">
+                        <i class="fa-solid fa-circle" aria-hidden="true"></i>
+                        <span id="sync-status-text">Обновлено: —</span>
+                        <span class="sync-source" id="sync-source"></span>
+                    </p>
                 </div>
             </div>
         </header>
@@ -72,7 +85,7 @@
                     <p><strong>Корпус:</strong> Ocypus Gamma C50 черный</p>
                     <p><strong>Наушники:</strong> Logitech G733 белый</p>
                     <p><strong>Клавиатура:</strong> TPANTEON T2 PRO BS белый</p>
-                    <p><strong>Мышки:</strong> Logitech Pro X SuperLight (осн.), китайская XD (запасная)</p>
+                    <p><strong>Мышки:</strong> A7 V2 Ultra+ (осн.), Logitech Pro X SuperLight (запасная), китайская XD</p>
                     <p><strong>Джойстик:</strong> xBox One Controller</p>
                     <p><strong>Граф. планшет:</strong> VEIKK VK1600</p>
                 </div>
@@ -83,16 +96,16 @@
             <section class="card">
                 <h2><i class="fa-solid fa-sack-dollar"></i> Топ донатеры</h2>
                 <div class="info-block" id="donators-list">
-                    <p><i class="fa-solid fa-trophy" style="color: #ffd700;"></i> Naokifuri — 1770 RUB</p>
-                    <p><i class="fa-solid fa-trophy" style="color: #c0c0c0;"></i> Леми — 536,74 RUB</p>
-                    <p><i class="fa-solid fa-trophy" style="color: #cd7f32;"></i> Аноним — 520 RUB</p>
-                    <p><i class="fa-solid fa-medal"></i> Аteenss — 400 RUB</p>
-                    <p><i class="fa-solid fa-medal"></i> Yumika_Karimey (Michealufo1250) — 80 RUB</p>
+                    <p><i class="fa-solid fa-trophy" style="color: #ffd700;"></i> kakTY3 — 2090 ₽</p>
+                    <p><i class="fa-solid fa-trophy" style="color: #c0c0c0;"></i> Naokifuri — 1570 ₽</p>
+                    <p><i class="fa-solid fa-trophy" style="color: #cd7f32;"></i> Ateenss — 920 ₽</p>
+                    <p><i class="fa-solid fa-medal"></i> Lem_q — 494,63 ₽</p>
+                    <p><i class="fa-solid fa-medal"></i> Michaelufo1250 — 80 ₽</p>
                 </div>
 
                 <h2><i class="fa-solid fa-bell"></i> Meme Alerts</h2>
                 <div class="info-block" id="memealerts-list">
-                    <p><i class="fa-solid fa-bolt"></i> Voidbasis — 1785 RUB</p>
+                    <p><i class="fa-solid fa-bolt"></i> Voidnu11 — 2958 ₽</p>
                 </div>
 
                 <h2><i class="fa-solid fa-rocket"></i> Бустеры Discord</h2>
